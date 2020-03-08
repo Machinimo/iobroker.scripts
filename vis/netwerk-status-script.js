@@ -1,6 +1,10 @@
 /* Versionshistorie:
  * 
- * 1.0.1
+ * 1.0.2:
+ * - neu: Anzeige der letzten An- und Abmeldung
+ * - neu: Verwendung eigener Bilder möglich
+ * 
+ * 1.0.1:
  * - neu: In dem Mapping der IP-Adressen kann jetzt eine URL vergeben werden ('http' oder direkt eine spezifische URL)
  * - geändert: Styling der Details
  * - entfernt: MAC-Adresse
@@ -22,6 +26,12 @@ const checkInterval = 30;                                         // Interval wi
  
 let sprache = 'de';                                               // Sprache für formatierung letzte Änderung
 let formatierungLastChange = "ddd DD.MM - HH:mm";                 // Formatierung letzte Änderung -> siehe momentjs library
+
+let imagePath = '/vis.0/myImages/networkDevices/'                 // Pfad zu den verwendeten Bildern (bitte über den VIS Dateimanager hochladen)
+                                                                  // nach Variable imagePath suchen und die entsprechenden Zeilen aus- bzw. einkommentieren
+                                                                  // Das Bild (Dateiformat png) in der Mapping-Liste hinterlegen
+let defaultImage = 'ip-network-outline';                          // Standardbild, falls kein Bild angegeben wurde (Material Design Icons)
+//let defaultImage = `${imagePath}default.png`;                   // Standardbild, falls kein Bild angegeben wurde (eigenes Bild)
  
 let farbeGeraetOnline = 'green';                                  // Status Bar Farbe wenn Geräte online ist
 let farbeGeraetOffline = 'FireBrick';                             // Status Bar Farbe wenn Geräte offline ist
@@ -33,8 +43,8 @@ let filterResetAfter = 120;                                       // Filter nach
 
 const deviceNames = 
 [{ ip: "192.168.178.11", alias: "Your Computer", 	  image: "desktop-classic" },
- { ip: "192.168.178.12", alias: "Sonoff Living Room", image: "toggle-switch-outline", link: "http" },
- { ip: "192.168.178.13", alias: "Diskstation", 		  image: "NAS", 				  link: "http://diskstation:5000" }
+{ ip: "192.168.178.12", alias: "Sonoff Living Room", image: "toggle-switch-outline", link: "http" },
+{ ip: "192.168.178.13", alias: "Diskstation", 		  image: "NAS", 				  link: "http://diskstation:5000" }
 ];
  
 // **********************************************************************************************************************************************************************
@@ -76,7 +86,7 @@ function netzwerkStatus() {
             let pattern = /(?:\d{1,3}\.){3}\d{1,3}/i;
 
             let ipAddress = obj.common.name.match(pattern)[0];
-            let image = 'ip-network-outline';
+            let image = defaultImage;
             let deviceName = obj.common.name.replace(/ \((?:\d{1,3}\.){3}\d{1,3}\)/g, '');
             let device = deviceNames.find(element => element.ip == ipAddress);
             let listType = 'text';
@@ -85,6 +95,7 @@ function netzwerkStatus() {
             if(device) {
                 deviceName = device.alias;
                 image = device.image;
+                //image = `${imagePath}${device.image}.png`;
 
                 if(device.link) {
                     listType = 'buttonLink';
@@ -110,10 +121,27 @@ function netzwerkStatus() {
             if(listType === 'buttonLink') {
                 deviceName = `<span style="text-decoration: underline">${deviceName}</span>`                
             }
+
+            let lastSignIn = 'noch nicht angemeldet';
+            let lastSignOff = 'noch nicht abgemeldet';
+
+            // Letzte Anmeldung auslesen
+            if(existsState(id + '.lastActive')) {
+                lastSignIn = 'angemeldet seit: ' + moment((getState(id + '.lastActive').val)).format("DD.MM.YY HH:mm:ss");
+            }        
+
+            // Letzte Abmeldung auslesen
+            if(existsState(id + '.lastInactive')) {
+                lastSignOff = 'abgemeldet seit: ' + moment((getState(id + '.lastInactive').val)).format("DD.MM.YY HH:mm:ss");
+            }
+
+            let subText = `<div style="color: black; font-family: RobotoCondensed-BoldItalic">${ipAddress}</div>
+                           <div style="color: grey; font-family: RobotoCondensed-Regular">${lastSignIn}</div>
+                           <div style="color: grey; font-family: RobotoCondensed-Regular">${lastSignOff}</div>`
  
             deviceList.push({
                 text: deviceName,
-                subText: ipAddress,
+                subText: subText,
                 statusBarColor: statusBarColor,
                 image: image,
                 imageColor: imageColor,
